@@ -3,7 +3,7 @@
 Plugin Name: AW WordPress Yearly Category Archives
 Plugin URI: http://coded.andy-warren.net/wordpress-yearly-category-archives/
 Description: This plugin will allow for yearly archives of specific categories.
-Version: 1.1.1
+Version: 1.2
 Author: Andy Warren
 Author URI: http://coded.andy-warren.net
 
@@ -75,11 +75,13 @@ function aw_create_year_links($atts) {
 	extract(shortcode_atts( array(
 		'cat' => '1',
 		'postslug' => '',
+		'dropdown' => 'no',
 	), $atts, 'aw_year_links' ));
 				
 	$dateArray = array();
 	$postTypes = get_post_types( '', 'names' ); 
 	$myposts = get_posts(array('posts_per_page' => -1, 'post_type' => $postTypes, 'category' => $cat, 'post_status' => 'publish', 'orderby' => 'post_date'));
+	
 	foreach ($myposts as $post) { 
 		$postdate = mysql2date('Y', $post->post_date);
 		$dateArray[] = $postdate;				
@@ -87,19 +89,37 @@ function aw_create_year_links($atts) {
 	
 	if ($post) {	
 		$earliestPostDate = min($dateArray);
-		$latestPostDate = max($dateArray);		
-		echo '<ul class="awDatesUL">';		
+		$latestPostDate = max($dateArray);
+		
+		if ($dropdown == 'yes') {
+			echo '<script type="text/javascript">jQuery( document ).ready(function() { jQuery(".awYearsDropdown").change( function() { location.href = jQuery(this).val(); }); jQuery(".awYearsDropdown").prepend("<option>Choose A Year</option>").val("Choose A Year"); });</script>';
+			echo '<select class="awYearsDropdown">';
+		} else {				
+			echo '<ul class="awDatesUL">';
+		}		
 		while ($earliestPostDate <= $latestPostDate) {
 			$pieces = explode(" ", $earliestPostDate++);
+			
 			foreach ($pieces as $piece) {
 				$currentYear = date('Y');
 				if ($piece <= $currentYear) {
-					$piece = '<li class="awDatesLI"><a href="' . site_url() . '/' . $postslug .  '/?' . $piece . '">' . $piece . '</a></li>';
+				
+					if ($dropdown == 'yes') {
+						$piece = '<option class="awDropdownOption" value="' . site_url() . '/' . $postslug .  '/?' . $piece . '">' . $piece . '</option>';	
+					} else {
+						$piece = '<li class="awDatesLI"><a href="' . site_url() . '/' . $postslug .  '/?' . $piece . '">' . $piece . '</a></li>';
+					}
 					echo $piece;
 				}				
 			}
-		}						
-		echo '</ul>';		
+			
+		}
+		
+		if ($dropdown == 'yes') {
+			echo "</select>";
+		} else {						
+			echo '</ul>';
+		}		
 	} else {
 		echo '<p>The are no posts in this category click <a href="' . home_url() .  '">here</a> to return to the home page.</p>';
 	}
@@ -199,7 +219,7 @@ function aw_show_posts_by_year_and_cat($atts) {
 	
 	$customLayout = get_option('aw_wp_yca_postcontent');
 	
-	$postLoop = new WP_Query(array('posts_per_page' => -1, 'post_type' => $postTypes, 'category' => $cat, 'post_status' => 'publish', 'orderby' => 'post_date', 'order' => 'DESC', 'paged' => $paged));
+	$postLoop = new WP_Query(array('posts_per_page' => -1, 'post_type' => $postTypes, 'cat' => $cat, 'post_status' => 'publish', 'orderby' => 'post_date', 'order' => 'DESC', 'paged' => $paged));
 	while ( $postLoop->have_posts() ) : $postLoop->the_post();
 	
 	$postdate = get_the_date('Y');
